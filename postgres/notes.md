@@ -1,17 +1,17 @@
-## Commands to interact with Postgres
-1. Starting Postgres with docker
+# Commands to interact with Postgres
+##1. Starting Postgres with docker
 ```
-docker volume create postgres-volume
-docker run --name postgres \ 
--e POSTGRES_USER=postgres \ 
--e POSTGRES_PASSWORD=password \ 
--p 5432:5432 \ 
--v postgres-volume:/var/lib/postgresql/data \ 
+docker volume create <name of volume (e.g. postgres-volume)>
+docker run --name <name of container (e.g. postgres)> \ 
+-e POSTGRES_USER=<name of user (e.g. postgres)> \ 
+-e POSTGRES_PASSWORD=<password for the user (e.g. postgres)> \ 
+-p <PORT_MAPPING (postgres runs with 5432:5432 by default)> \ 
+-v <volume data path (e.g. postgres-volume:/var/lib/postgresql/data)> \ 
 -d postgres:17.2
 ```
-
-```
-```
-```
-```
-```
+##2. Connecting to postgres 
+###a. Running inside docker
+```docker exec -it <container_name(we used postgres)> psql -U <username (we used postgres)>```
+OR
+###b. Running on a remote server
+```psql -h <instance_url> -U <username> -d <db_name>```

@@ -1,5 +1,5 @@
 # Commands to interact with Postgres
-##1. Starting Postgres with docker
+## Starting Postgres with docker
 ```
 docker volume create <name of volume (e.g. postgres-volume)>
 docker run --name <name of container (e.g. postgres)> \ 
@@ -9,9 +9,13 @@ docker run --name <name of container (e.g. postgres)> \
 -v <volume data path (e.g. postgres-volume:/var/lib/postgresql/data)> \ 
 -d postgres:17.2
 ```
-##2. Connecting to postgres 
-###a. Running inside docker
-```docker exec -it <container_name(we used postgres)> psql -U <username (we used postgres)>```
+## Connecting to postgres 
+### Running inside docker
+```
+docker exec -it <container_name(we used postgres)> psql -U <username (we used postgres)>
+```
 OR
-###b. Running on a remote server
-```psql -h <instance_url> -U <username> -d <db_name>```
+### Running on a remote server
+```
+psql -h <instance_url> -U <username> -d <db_name>
+```

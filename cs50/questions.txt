@@ -1,0 +1,1 @@
+Q. Why we need pointers?

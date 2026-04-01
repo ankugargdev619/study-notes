@@ -255,4 +255,13 @@ UPDATE account SET balance = balance + 100 WHERE account_id = 'B';
 
 COMMIT; # End of the transaction
 ```
-```
+
+## Multiversion Concurrence Control (MVCC)
+This allows execution of multiple transactions concurrently. Let's understand the problem it solves with help of an example. 
+
+Consider that user A is sending $100 to user B and user B is checking the account balance at same time. Within the transaction assume that the account balance for B has been updated but the transaction is not committed yet. Now at this time if the user B checks the account balance then the account balance will show as original balance + $100 but this is inaccurate since the transaction is not committed yet, this is known as **Dirty Read**. 
+MVCC makes sure that data shows only as per transactions which have been completed.
+
+Another scenario can be when 2 different transactions are trying to write the same column. Say user A send $100 to user B and user C sent $50 to user A at same time.
+Now the user A's account balance during the transaction will be original balance - 100, but since the transaction is not committed yet, therefore the user C will still see the original balance and if the write is allowed then the user A's balance will become original balance + 50, this is known as **Dirty Reads**.
+MVCC prevents this by blocking the second transaction until first transaction is executed.

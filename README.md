@@ -10,33 +10,32 @@ viii) Learn about Internet : A course for basic understanding
 
 
 # Skills reqquired
-Frontend : 
-Skills : React, Angular or Vue 
-Resources : Skills : Javascript : The Definitive Guide
+Frontend : <br>
+Skills : React, Angular or Vue <br>
+Resources : Javascript : The Definitive Guide<br>
 
-Backend : 
-Skills : Node, Express, Python, Django, Flask, Java, Spring, REST, GraphQQL
-Resources :
+Backend : <br>
+Skills : Node, Express, Python, Django, Flask, Java, Spring, REST, GraphQL <br>
+Resources : <br>
 
-Databases : 
-Skills : MySQQL, PostgreSQL, SQQL Server, MongoDB, DynamoDB, ORMS, Schema Design, ACID scaling
-Resources : PostGres is all you need, SQL Antipatterns
+Databases : <br>
+Skills : MySQQL, PostgreSQL, SQQL Server, MongoDB, DynamoDB, ORMS, Schema Design, ACID scaling <br>
+Resources : PostGres is all you need, SQL Antipatterns <br>
 
-DevOps : 
-Skills : AWS / Azure / GCP, Docker, Kubernetes, CI/CD (Jenkins, Github Actions, GitLab CI), Infra as code (Terraform, Ansible), Git, Linux basics, networking, Monitoring ( Grafana, Prometheus)
-Resources : Refer different documentation
+DevOps : <br>
+Skills : AWS / Azure / GCP, Docker, Kubernetes, CI/CD (Jenkins, Github Actions, GitLab CI), Infra as code (Terraform, Ansible), Git, Linux basics, networking, Monitoring ( Grafana, Prometheus) <br>
+Resources : Refer different documentation <br>
 
-Security :
-Skills : OAuth / JWT, SSL / TLS, encryption, CSRF/Express, Input sanitization
-Resources : WebGoat, OWASP Develop Guide
+Security : <br>
+Skills : OAuth / JWT, SSL / TLS, encryption, CSRF/Express, Input sanitization <br>
+Resources : WebGoat, OWASP Develop Guide <br>
 
-Testing :
-Skills : Jest, Mocha, PyTest, JUnit, Selenium
-Resources : Documentation of tools
+Testing : <br>
+Skills : Jest, Mocha, PyTest, JUnit, Selenium <br>
+Resources : Documentation of tools <br>
 
-Architure and API :
-Skills : Monolith, Microservices, MVC, Event-Driven, SLID Principles, design patterns
-Resources : Head First Design Patterns, Clean Architecture book, Microservices Patterns, System Design primer by Github, Swagger / OpenAPi tutorial
+Architure and API : <br>
+Skills : Monolith, Microservices, MVC, Event-Driven, SLID Principles, design patterns <br>
+Resources : Head First Design Patterns, Clean Architecture book, Microservices Patterns, System Design primer by Github, Swagger / OpenAPi tutorial <br>
 
-Cloud & CI / CD : Ec2, Lanbda, S3
-
+Cloud & CI / CD : Ec2, Lanbda, S3 <br>

@@ -9,7 +9,7 @@ vii) Head First Python : After DSA<br>
 viii) Learn about Internet : A course for basic understanding
 
 
-# Skills reqquired
+# Skills required
 Frontend : <br>
 Skills : React, Angular or Vue <br>
 Resources : Javascript : The Definitive Guide<br>

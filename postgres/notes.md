@@ -48,9 +48,7 @@ SELECT datname FROM pg_database;
 
 ## Change database
 ```bash
-```
 \c <name of db>
-```
 ```
 
 ## List all available schemas
@@ -119,7 +117,6 @@ WHERE <condition>;
 
 Example
 ```sql
-```
 SELECT id, name, price FROM product.catalog
 WHERE category='coffee';
 ```
@@ -143,8 +140,6 @@ WHERE <condition>;
 Example
 
 ```sql
-```
-```
 UPDATE product.catalog SET price=11
 WHERE category='coffee';
 ```
@@ -163,7 +158,6 @@ EXCLUSION : This constraint makes sure that when 2 rows compared on specified co
 ### Check Constraint 
 This constraint allows us defining certain rules preventing invalid data entry like negative values etc.
 Syntax
-```sql
 ```sql
 ALTER TABLE <schema>.<table>
   ADD CONSTRAINT <name of constraint> CHECK (<constraint condition>);

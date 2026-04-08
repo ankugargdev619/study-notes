@@ -259,3 +259,200 @@ MVCC makes sure that data shows only as per transactions which have been complet
 Another scenario can be when 2 different transactions are trying to write the same column. Say user A send $100 to user B and user C sent $50 to user A at same time.
 Now the user A's account balance during the transaction will be original balance - 100, but since the transaction is not committed yet, therefore the user C will still see the original balance and if the write is allowed then the user A's balance will become original balance + 50, this is known as **Dirty Reads**.
 MVCC prevents this by blocking the second transaction until first transaction is executed.
+
+
+
+## Joins
+Join queries are used when the data between different table is supposed to be joined together and displayed in a single table.
+The syntax is simple with the ON command.
+
+Syntax:
+```sql
+SELECT <table1_alias>.<col in table> FROM <schema>.<table> <alias>
+  JOIN <table>.<col> <ALIAS> ON <alias>.<col> = <alias>.<col>;
+```
+
+Example : Say we have 2 tables accounts in customers schema and orders table in sales schema and we want to select the total number of order per customer then we can join the data as below
+```sql
+SELECT c.name, c.id, count(*) as total_orders
+  FROM customers.accounts c 
+  JOIN sales.orders s ON c.id = s.customer_id
+  GROUP BY c.id 
+  ORDER BY total_orders DESC 
+  LIMIT 3;
+```
+
+What this query does?
+It selects the table orders inside sales schema with alias s and table accounts inside customer schema aliased as c.
+Join the tables on id column in accounts table is mapped to the customer_id column in the sales schema.
+
+There can be multiple type of joins
+### INNER JOIN
+This join selects the rows which have values matching in both the tables.
+Consider I'm INNER JOINING 2 tables products and categories and we do a join on the id column then the rows with matching id will be selected. The normal join is inner join by default.
+Example
+```sql
+SELECT product_id, product_name, category_name FROM products
+  INNER JOIN categories ON products.category_id = categories.id;
+```
+
+### LEFT JOIN 
+This join selects all the rows from the left table irrespective of whether the value is present in the right table.
+Example
+```sql
+SELECT product_id, product_name, category_name FROM products
+  LEFT JOIN categories ON products.category_id = categories.id;
+```
+
+### RIGHT JOIN 
+This join selects all the rows from right table irrespective of whether it is present in the left table.
+Example
+```sql
+SELECT product_id, product_name, category_name FROM products
+  RIGHT JOIN categories ON products.category_id = categories.id;
+```
+
+### FULL JOIN 
+This join select the rows from both the tables irrespective of the values in other table.
+```
+SELECT product_id, product_name, category_name FROM products
+  FULL JOIN categories ON products.category_id = categories.id;
+```
+
+### CROSS JOIN 
+This join takes cartesian product of the columns in both the rows. It will show all the possible combinations of both the tables. This is useful in generating all the possible combinations of all the columns. This needs no columns based on which t he values can be matched.
+```sql
+SELECT product_id, product_name, category_name
+FROM products
+CROSS JOIN categories;
+```
+
+
+## Functions and Triggers
+### Functions
+Functions and be simply used make calculations on the fly within the database.
+Syntax
+```sql
+CREATE OR REPLACE FUNCTION products.get_product_price(product_id INT)
+RETURNS NUMERIC(10,2) AS $$
+  SELECT price
+  FROM products.catalog
+  WHERE id = product_id;
+$$ LANGUAGE sql;
+```
+
+This function named get_product_price returns the price of a product given that we pass the product id to it.
+Using functions is helpful when we need to implement a business logic at multiple places and it is easier to rather make all the services use a function at database level.
+
+In above example, the function is applied on the products schema and can be called by the application layer easily.
+Implementing database functions makes more sense when I need more round trips between DB and application layer if any complex logic needs to be implemented.
+
+**Note**:
+Functions vs Stored Procedures
+The functions are different from stored procedures. The stored procedures never return a value.
+
+Procedures can be used when batch of data needs to be processed with rollback.
+
+```psql
+CREATE OR REPLACE FUNCTION sales.order_add_item(customer_id_param INT, product_id_param INT, quantity_param INT)
+RETURNS TABLE (order_id UUID, prod_id INT, quantity INT, prod_price DECIMAL) AS $$
+DECLARE pending_order_id UUID;
+BEGIN
+  SELECT id INTO pending_order_id FROM sales.orders
+  WHERE customer_id = customer_id_param
+  AND status = 'pending'
+  LIMIT 1;
+
+  IF pending_order_id IS NULL THEN
+    INSERT INTO sales.orders (customer_id, status)
+    VALUES (customer_id_param, 'pending')
+    RETURNING id INTO pending_order_id;
+  END IF;
+
+  MERGE INTO sales.order_items AS oi 
+  USING (
+    SELECT id, price FROM products.catalog
+    WHERE id = product_id_param
+  ) AS prod ON oi.product_id = prod.id AND oi.order_id = pending_order_id
+  
+  WHEN MATCHED THEN
+    UPDATE SET quantity = quantity_param
+  WHEN NOT MATCHED THEN
+    INSERT (order_id, product_id, quantity, price) VALUES (pending_order_id, prod.id, quantity_param, prod.price);
+  RETURN QUERY
+  
+  SELECT oi.order_id, oi.product_id, oi.quantity, oi.price as prod_price
+  FROM sales.order_items as oi
+  WHERE oi.order_id = pending_order_id;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+_Understanding the query line by line_ 
+Line # 1 : Declared the function with arguments defined in it so the name of the function is order_add_item and arguments are below
+a. customer_id_param
+b. product_id_param
+c. quantity_param
+Line # 2 : Defines the return type of the function similar to any function. In this case we are returning the order_id, prod_id, quantity and prod_price and $$ marks the start of code block 
+Line # 3, a variable pending_order_id is defined, which will be used in the function
+Line # 4 marks the beginning of the function logic 
+Line # 5 to 7 we first load the pending order id for the customer, this checks if an order already exists
+Line # 9-13 : If the pending order doesn't exist then add a new order and return the value of id into the pending order id 
+Line # 15-24 : The merge statement finds the price of the product from the product.catalog table and then updates the sales.order_items table
+
+
+
+## Triggers
+Triggers are particular type of function which needs to be executed either before or after an update. The triggers are useful for event driven architecture.
+A good use case of triggers is to update the billing amount whenever an item is either added or removed from the cart.
+When I add any item to a cart then the order amount should get updated and this can be handled using the application layer.
+But if we attach a trigger to calculate the amount whenever an item is added or removed from the cart then the logic becomes very consistent.
+
+Syntax
+```sql
+CREATE TRIGGER trigger_update_order_total
+AFTER INSERT OR UPDATE OR DELETE ON sales_order_items 
+FOR EACH ROW 
+EXECUTE FUNCTION sales.update_order_total();
+```
+
+A very good use case is sending notification based on event triggers. This allows using Postgres as messaging queue.
+
+## Views
+Views are named queries which return the data in a tabular format. Imagine a query which needs to be executed in multiple places then a view can be used to make it happen.
+
+Syntax
+```sql
+CREATE VIEW sales.product_sales_summary AS SELECT
+c.name AS product_name,
+c.category,
+SUM(oi.quantity) AS total_quantity_sold,
+SUM(oi.quantity * oi.price) AS total_revenue FROM products.catalog c 
+LEFT JOIN sales.order_items oi ON c.id = oi.product_id GROUP BY c.id 
+ORDER BY total_quantity_sold DESC, total_revenue DESC;
+```
+
+By default the views are not materialised which means that the views are not stored, the execution happens at real time. 
+If the response of the queries need to be stored and fetched periodically then the materialised views can be used
+
+### Materialized Views
+This used for queries which take very long to execute, the queries are executed and response is saved, this response can be served from the storage and the query will not be executed at real time.
+
+Syntax
+```sql
+CREATE MATERIALIZED VIEW sales.product_sales_summary AS SELECT
+date_trunc('month', o.order_date) AS sales_month, SUM(oi.quantity * oi.price) AS total_revenue, COUNT(DISTINCT(o.id)) 
+AS total_orders
+FROM sales.orders o 
+JOIN sales.order_items oi ON o.id = oi.order_id
+GROUP BY sales_month
+ORDER_BY sales_month;
+```
+
+A downside of the materialised views is that the data needs to be refreshed manually by refreshing the view
+A period sync of the views can be done using `pg_cron` or this can be attached as a response to a trigger.
+
+### Roles and permissions
+
+
+

@@ -453,6 +453,108 @@ A downside of the materialised views is that the data needs to be refreshed manu
 A period sync of the views can be done using `pg_cron` or this can be attached as a response to a trigger.
 
 ### Roles and permissions
+It is less than ideal for all the users to have all the permissions to make any changes in the database.
+Check the database roles in postgres
+`\du`
 
+There should be specific roles for different type of roles. The permissions can be granted like below.
+
+#### Create a role
+Syntax 
+```bash
+CREATE ROLE <name_of_user> WITH LOGIN PASSWORD <password>;
+```
+
+Example
+```bash
+CREATE ROLE new_user WITH LOGIN PASSSWORD 'password';
+```
+
+#### Granting access to the role
+Syntax 
+```bash
+GRANT CONNECT ON DATABASE <db_name> TO <user_role>;
+```
+
+Example
+```bash
+GRANT CONNECT ON DATABASE postgres TO new_user;
+```
+
+This allows user to connect to the database.
+
+#### Revoke access
+Syntax
+```bash
+REVOKE CONNECT ON DATABASE <db_name> FROM PUBLIC;
+```
+
+Example
+```bash
+REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
+```
+
+This prevents all the other users from connecting to the database.
+
+#### Setting up different permissions
+```bash
+GRANT USAGE ON SCHEMA public TO <user_name>;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA <schema_name> TO <user_name>;
+GRANT USAGEE, SELECT ON ALL SEQUENCE IN SCHEMA products TO coffee_chain_admin;
+```
+```
+
+Below are type of grants that can be provided
+1. SELECT : Allow SELECT from any column of the specified table, view or sequence.
+2. INSERT : Allows INSERT of a new row into the specified table.
+3. UPDATE : Allows updating any column of the specified table.
+4. DELETE : Allows deleting a row from the specifieid table.
+5. RULE : Allows creation of RULE in any table
+6. REFERENCES : Allows creating a foreign key constraint 
+7. TRIGGER : Allows creation of a trigger on the specified table.
+8. CREATE : Allows creation of new databases, create new objects and creation of new tables. 
+9. TEMPORARY : Allow temporary tablees to be created while using the specified database.
+10. EXECUTE : Allows the use of the specified function and the use of any operators that are implemented on top of the function.
+11. USAGE : For procedural languages, allows the use of the specified language.
+12. ALL PRIVLEGES : Grant all of the available privleges at once.
+
+
+# Modern SQL 
+Postgres has modern SQL capabilities which allows users to do much more than classic relational capabilities.
+Today SQL supports arrays, JSON objects and custom composite unstructured data efficiently.
+
+## Common Table expressions (CTE):
+CTEs allows us to break the large queries into small managable queries pieces.
+Syntax
+```bash
+WITH <cte_name> AS (
+auxiliary_statement
+)
+primary_statement
+```
+
+
+The auxiliary statement is a statement which is used at multiple places and can be used in combination with the existing primary_statement.
+Using CTEs improves below
+i) Improved Readability
+ii) Reusability in the same query
+iii) Easy debugging
+iv) Supprts Recursion
+v) Better organization
+
+Example
+```bash
+WITH plays_cte AS (
+  SELECT s.title, s.duration
+  FROM streaming.plays p 
+  JOIN streaming.songs s ON p.song_id = s.id 
+  WHERE p.play_start_time:: DATE BETWEEN '2024-09-15' AND '2024-09-16'
+  AND p.play_duration = s.duration 
+)
+SELECT title, COUNT(*) AS play_count
+FROM plays_cte
+GROUP BY title
+ORDER BY play_count DESC;
+```
 
 

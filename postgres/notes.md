@@ -353,7 +353,7 @@ The functions are different from stored procedures. The stored procedures never 
 
 Procedures can be used when batch of data needs to be processed with rollback.
 
-```psql
+```bash
 CREATE OR REPLACE FUNCTION sales.order_add_item(customer_id_param INT, product_id_param INT, quantity_param INT)
 RETURNS TABLE (order_id UUID, prod_id INT, quantity INT, prod_price DECIMAL) AS $$
 DECLARE pending_order_id UUID;

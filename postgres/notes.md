@@ -502,7 +502,6 @@ GRANT USAGE ON SCHEMA public TO <user_name>;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA <schema_name> TO <user_name>;
 GRANT USAGEE, SELECT ON ALL SEQUENCE IN SCHEMA products TO coffee_chain_admin;
 ```
-```
 
 Below are type of grants that can be provided
 1. SELECT : Allow SELECT from any column of the specified table, view or sequence.

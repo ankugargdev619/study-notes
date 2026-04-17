@@ -47,7 +47,7 @@ SELECT datname FROM pg_database;
 ```
 
 ## Change database
-```bash
+```
 \c <name of db>
 ```
 
@@ -353,7 +353,7 @@ The functions are different from stored procedures. The stored procedures never 
 
 Procedures can be used when batch of data needs to be processed with rollback.
 
-```bash
+```sql
 CREATE OR REPLACE FUNCTION sales.order_add_item(customer_id_param INT, product_id_param INT, quantity_param INT)
 RETURNS TABLE (order_id UUID, prod_id INT, quantity INT, prod_price DECIMAL) AS $$
 DECLARE pending_order_id UUID;
@@ -461,23 +461,23 @@ There should be specific roles for different type of roles. The permissions can 
 
 #### Create a role
 Syntax 
-```bash
+```sql
 CREATE ROLE <name_of_user> WITH LOGIN PASSWORD <password>;
 ```
 
 Example
-```bash
+```sql
 CREATE ROLE new_user WITH LOGIN PASSSWORD 'password';
 ```
 
 #### Granting access to the role
 Syntax 
-```bash
+```sql
 GRANT CONNECT ON DATABASE <db_name> TO <user_role>;
 ```
 
 Example
-```bash
+```sql
 GRANT CONNECT ON DATABASE postgres TO new_user;
 ```
 
@@ -485,19 +485,19 @@ This allows user to connect to the database.
 
 #### Revoke access
 Syntax
-```bash
+```sql
 REVOKE CONNECT ON DATABASE <db_name> FROM PUBLIC;
 ```
 
 Example
-```bash
+```sql
 REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
 ```
 
 This prevents all the other users from connecting to the database.
 
 #### Setting up different permissions
-```bash
+```sql
 GRANT USAGE ON SCHEMA public TO <user_name>;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA <schema_name> TO <user_name>;
 GRANT USAGEE, SELECT ON ALL SEQUENCE IN SCHEMA products TO coffee_chain_admin;
@@ -525,7 +525,7 @@ Today SQL supports arrays, JSON objects and custom composite unstructured data e
 ## Common Table expressions (CTE):
 CTEs allows us to break the large queries into small managable queries pieces.
 Syntax
-```bash
+```sql
 WITH <cte_name> AS (
 auxiliary_statement
 )
@@ -542,7 +542,7 @@ iv) Supprts Recursion
 v) Better organization
 
 Example
-```bash
+```sql
 WITH plays_cte AS (
   SELECT s.title, s.duration
   FROM streaming.plays p 

@@ -556,4 +556,153 @@ GROUP BY title
 ORDER BY play_count DESC;
 ```
 
+### Multiple CTEs in a single query
+```sql
+WITH plays_cte AS (
+  SELECT s.title, s.duration, p.play_duration, p.user_id FROM streaming.plays p
+  JOIN streaming.songs s ON p.song_id = s.id 
+  WHERE p.play_start_time::DATE BETWEEN '2024-09-15' AND '2024-09-16'
+  AND p.play_duration < (s.duration / 2)
+),
+user_play_counts AS (
+  SELECT title, duration, COUNT(DISTINCT user_id) AS user_count, MIN(play_duration) AS min_play_duration,
+  COUNT(*) AS total_play_count
+  FROM plays_cte
+  GROUP BY title, duration 
+)
+SELECT title, duration, min_play_duration, total_play_count FROM user_play_counts
+WHERE user_count >= 3 
+ORDER BY min_play_duration ASC 
+LIMIT 3;
+```
+
+
+**Note : Postgres doesn't always execute the query which has been defined and will always convert the query into an optimised query.**
+If the CTE is called more than once in the query then Postgres will materialise it automatically
+
+## Recursive queries
+Recursive queries are the CTE that is created by adding recursive clause to the CTE.
+```sql
+WITH RECURSIVE cte_name
+  (column1, column2, columnN)  # The recursive CTE definition 
+AS (
+  SELECT columns FROM table1   # The non-recursive part
+  WHERE condition
+  
+  UNION [ALL]
+
+  SELECT columns FROM cte_name # Recursive tem 
+  WHERE recursive_condition
+)
+SELECT columns FROM cte_name;
+```
+
+
+-> The RECURSIVE clause instructs Postgres that the CTE is a recursive query. The definition can include an optional list of columns that are expected to be returned.
+-> The non-recursive term is executed once, poulating a temporary working table with the initial data.
+-> The UNION or UNION ALL clause merges the results of the non-recursive abd recursive terms until the recursion stops.
+
+A good example explaining the use case is below.
+Assume we have a table which contains the songs played by a user on a streaming platform. if a song is played after another song without interruption then it stores the played_after
+
+Now let's say we want to get the list of the songs played by users in a sequence started by a certain song
+
+```sql
+WITH RECURSIVE play_sequence AS (
+  SELECT id, user_id, song_id,
+    play_start_time, play_duration, played_after
+  FROM streaming.plays
+  WHERE id = 5 
+
+  UNION ALL
+  
+  SELECT p.id, p.user_id, p.song_id, 
+    p.play_start_time, p.play_duration, p.played_after
+    FROM streaming.plays p 
+    JOIN play_sequence ps ON p.play_after = ps.id
+)
+SELECT user_id, song_id, play_start_time,
+  play_duration as duration, played_after
+FROM play_sequence
+ORDER BY play_start_time;
+```
+
+This query selects the song by id and then builds songs played in which the played_after is set as song id of the original song returned then we join the results
+
+### Arguments in Recursion
+Recursive queries allow us to define a list of columns that are carried through recursion.
+
+```sql
+WITH RECURSIVE play_sequence(parent_id, sequence, total_duration) AS (
+  SELECT id, ARRAY[id], play_duration
+  FROM streaming.plays 
+  WHERE id = 5 
+  
+  UNION ALL 
+  
+  SELECT p.id, ps.seequence, || p.id, total_duration + p.play_duration 
+  FROM streaming.plays p 
+  JOIN play_sequence ps ON p.played_after = ps.parent_id 
+)
+SELECT p.song_id, p.play_start_time, p.play_duration, 
+  ps.sequence, ps.total_duration
+FROM play_sequence ps 
+JOIN streaming.plays p ON ps.parent_id = p.id 
+ORDER BY ps.sequence, p.play_start_time;
+```
+
+
+**Note : The `ps.sequence || p.id` just appends the id of the new song play to the existing array.**
+
+## Window functions
+Window functions allow us to perform calculations on specific columns and arguments. this can be an aggregatee function such as SUM() or AVG()
+Syntax
+```sql
+SELECT function_name(argumrnts)
+OVER (PARTITION BY columnA)
+FROM table;
+```
+
+Suppose we need to calculate the total played duration of a song then we can use below
+```sql
+SELECT song_id, SUM(play_duration) AS total_duration 
+FROM steaming.plays
+GROUP BY using song_id ORDER BY total_duration DESC;
+```
+
+this is fine but now if we want to show the total_duration for each user who actually played the song
+```sql
+SELECT song_id, user_id, SUM(play_duration) as total_duration
+FROM streaming.plays
+GROUP BY (song_id, user_id) ORDER BY song_id;
+```
+
+
+This has a problem because now we are showing the number of plays by each user for a song, this problem can be solved without window function. 
+```sql
+SELECT DISTINCT p.song_id, p.user_id, t.total_duration
+FROM streaming.plays p 
+JOIN(
+  SELECT song_id,
+    SUM(play_duration) AS total_duration
+  FROM streaming.plays 
+  GROUP BY song_id 
+) t ON p.song_id = t.song_id 
+ORDER BY p.song_id;
+```
+
+The problem with this is that the query is not optimised.
+
+```sql
+WITH plays_with_total AS (
+  SELECT
+    song_id, user_id, SUM(play_duration)
+    OVER (PARTITION BY song_id) AS total_duration 
+  FROM streaming.plays 
+)
+SELECT DISTINCT song_id, user_id, total_duration 
+FROM plays_with_total 
+ORDER BY song_id, user_id;
+```
+
 

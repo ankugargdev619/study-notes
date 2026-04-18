@@ -706,3 +706,75 @@ ORDER BY song_id, user_id;
 ```
 
 
+# Indexes
+Indexes are the first thing that we turn to when a query is too slow and optimization is required.
+If we run a SELECT statement which will try to find a row by the value of the column, then the database needs to iterate through all the rows available in the table. This is a linear search and the time complexity is O(n). As the number of records increase, the query gets slower and slower.
+If the column we are looking for is indexed then the search becomes easier. By default the index is a B-tree.
+
+## Types of Indexes
+There are 2 broad categories of the index types:
+-> By index scope : Here we decide which column of the table needs to be applied to the indexed data. Examples include single-column, composite, covering, partial and functional
+-> By data structure : B-tree, hash, bloom, GGIN, RUM, GiST, SP-GiST, BRIN, HNSW
+
+By default the index used is B-Tree 
+Syntax
+```sql
+CREATE INDEX new_index_name ON table_name(colun_name);
+```
+
+With data structure
+```sql
+CREATE INDEX new_index_name ON tableA USING GIN (columnA);
+```
+
+Different data structures are suitable for different type of the data stored inside the column.
+
+### Using explain statement
+If a query is slow then an explain statement should be used first before deciding which column should be indexed.
+Syntax
+```sql
+EXPLAIN 
+SELECT username, level, score 
+FROM game.player_stats 
+WHERE player_id = 250;
+```
+
+
+Explain statement doesn't actually run the query, for that we need to analyse the statement
+```sql
+EXPLAIN ANALYZE 
+SELECT username, level, score 
+FROM game,player_stats 
+WHERE player_id = 250;
+```
+
+
+It explains the plan of execution for the query.
+
+### Single-column Indexes
+In this type of index, the index is applied to single column only 
+#### Single-column B-tree indexes 
+B-tree structure allows searching with a time complexity of logrithmic scale. If the number of queries are 1000 then it will only take 3 lookups give then branching factor is 10.
+The default index created is B-Tree.
+Syntax
+```sql
+CREATE INDEX idx_score
+ON game.player_stats(score DESC);
+```
+
+**Note : It is a good practice to run the ANALYZE command after creating an index:**
+```sql
+CREATE INDEX on tableA(columnB);
+ANALYZE tableA;
+```
+
+#### Single-column hash indexes 
+In this type of index, the value is converted into a hash and the hash is computed and matched with the value directly.
+A limitation with hash is that it is useful only for the exact matches.
+```sql
+CREATE INDEX idx_champion_title
+ON game.player_stats
+USING hash(champion_title);
+```
+
+

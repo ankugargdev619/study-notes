@@ -778,3 +778,51 @@ USING hash(champion_title);
 ```
 
 
+
+### Composite column indexes 
+Composite column indexes are created over multiple columns in the table. They are also referred as multi column index. 
+B-tree, GIN, GiST, BRIN are the different type of indexes supported by Postgres.
+
+**When to use composite indexes?**
+This approach is useful when query needs to be executed with multiple column filters. Postgres doesn't always use indexes if it thinks that the approach will be more optimal without the index.
+**One would argue why it cannot work with adding a single column index for multiple columns. It is actually not right because of how it will work internally in postgres. For example if we have 2 columns score and region and we index both of them, when a composite query is executed the postgres will first filter the data based on one column and then later based on another column so eventually this doesn't fix the core issue.**
+
+Syntax
+```sql
+CREATE INDEX idx_region_score_win_count
+ON gamee.player_stats (region, score DESC, win_count DESC);
+```
+
+Here an index is created in combination of 3 columns. `region`, `score` in descending order, `win_count` in descending order
+
+#### Caveats of using composite indexes 
+The index above is optimised for the query where we sort by the score first and then by win_count, however this may not be the case 100% of the times.
+If I execute a query which sorts by win_count first then the index can no longer be used.
+
+**Note : After Postgres 18, the support to skip a column was introduced in composite indexes.**
+
+### Covering indexes 
+Covering index is an index that stores additional columns from the table, enabling the database to retrieve column values directly without accessing the table rows.
+```sql
+CREATE INDEX index_name ON table_name(columnA)
+INCLUDE(columnB, columnC [, additional_columns]);
+```
+
+If a query is present to access the selects the columnB and sorts it by columnC then database doesn't need to access table_name to retrieve the values of columnB and columnC. The values can be directly obtained from index.
+
+### Partial Indexes:
+A partial index is an index which is applied to certain part of the data and it can be updated with below syntax
+```sql
+CREATE INDEX partial_index_name ON table_name(columnA) WHERE condition;
+```
+
+### Functional and expression indexes: 
+Functional index is also called as expression index, it is useful when the data is stored in different format and the query will always use it in a different format.
+```sql
+CREATE INDEX idx_perf_margin
+ON game.player_stats((win_count - loss_count));
+```
+
+>Beware of over-indexing. Indexes are good for improving the performance but this doesn't come for free. Each time an index is created, the postgres maintains it on every writee to the column which has it's own cost.
+
+

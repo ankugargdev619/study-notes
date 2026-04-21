@@ -826,3 +826,170 @@ ON game.player_stats((win_count - loss_count));
 >Beware of over-indexing. Indexes are good for improving the performance but this doesn't come for free. Each time an index is created, the postgres maintains it on every writee to the column which has it's own cost.
 
 
+
+# Postgres and JSON
+Initial support for JSON was introduced in 2012. There are 2 data types which are present.
+i) JSON : JSON needs to be used if the database needs to perform certain validation and checks in any field of the JSON, like data type for each field present in the JSON object. 
+ii) JSONB : If the object needs to be queried as well then the JSONB can be used.
+
+The use of JSON should be considered when 
+i) data is static or updated infrequently (e.g. configurations, metadata)
+ii) data is sparse which is characterized by a significant presence of zeros, nulls etc.
+iii) Schema flexibility is required or normalization is hard to achieve
+
+Sometimes it doesn't make sense to use normalized table approach because of below reasons :
+Write overhead : This would require updating multiple tables transactionally. Say we are storing data related to pizza then we will need to store data in different tables. If a customer orders a pizza with 2 types of veggies then the application will need to insert the data into multiple tables (each table representing different type of topping)
+
+Read Overhead : This would mean that there will be overhead for reading of the data as well.
+
+Transformation : Frontend works with pizza recipes in JSON format - making it easier to display and process orders.
+
+
+## Advantages of using JSON : 
+```sql
+SELECT pizza FROM pizzeria.order_items WHERE order_id = 100;
+```
+
+This simple query will return all the data we need. 
+Sample output 
+```bash
+pizza
+--------------------------------------------------------------------------
+{"size": "small", "type": "margherita", "crust": "thin",
+"sauce": "marinara", "toppings": {"cheese": [{"mozzarella": "regular"}],
+"veggies": [{"tomato": "light"}]}}
+{"size": "small", "type": "custom", "crust": "gluten_free",
+"sauce": "pesto", "toppings": {"meats": [{"bacon": "light"}],
+"cheese": [{"mozzarella": "regular"}], "veggies": [{"onion": "light"}]}}
+{"size": "extra_large", "type": "pepperoni", "crust": "thin",
+"sauce": "marinara", "toppings": {"meats": [{"salami": "regular"}],
+"cheese": [{"mozzarella": "regular"}]}}
+(3 rows)
+```
+
+In some scenarios, we might need only certain fields and not all of them, also we might need to filter data based on certain field values.
+Postgres provides basic operators which provides these capabilities:
+1. `->` and `->>` operators : 
+These operators extract fields from a JSON object. `->` gives field in JSON format and `->>` converts into text for further processing.
+2. `@>` and `?` operators :
+`@>` object checks whether a JSON object contains another JSON object and `?` verifies the existence of a specific key in the object.
+3. Path expression allows us to check JSON objects for certain valus.
+
+### Extracting fields with the `->` and `->>` operators
+```sql
+SELECT order_id, ordeR_item_id, pizza->'size' as pizza_size, pizza->>'crust' as pizza_crust FROM pizzeria.order_items WHERE ordeR_id = 100;
+ order_id | order_item_id |  pizza_size   | pizza_crust 
+----------+---------------+---------------+-------------
+      100 |             1 | "small"       | thin
+      100 |             2 | "small"       | gluten_free
+      100 |             3 | "extra_large" | thin
+(3 rows)
+```
+
+Here we can note that the `->` operator returns an object and `->>` returns extracted text.
+We can use index of a field in JSON array to fetch the details.
+```sql
+SELECT order_id, order_item_id, pizza->'toppings'->'veggies'->0 as veggies_toppings FROM pizzeria.order_items WHERE ordeR_id = 100;
+ order_id | order_item_id |  veggies_toppings   
+----------+---------------+---------------------
+      100 |             1 | {"tomato": "light"}
+      100 |             2 | {"onion": "light"}
+      100 |             3 | 
+(3 rows)
+
+```
+
+
+### Using the `?` operator to check for the presence of a key
+Example
+```sql
+SELECT order_id, order_item_id, pizza->'toppings'->'meats' as meats
+FROM pizzeria.order_items
+WHERE pizza->'toppings' ? 'meats'
+ORDER BY order_id LIMIT 5;
+```
+
+### Comparing objects with `@>` operator
+The containment operator `@>` allows us to check whther one JSON object contains another within its structure.
+```
+SELECT count(*)
+FROM pizzeria.order_items 
+WHERE pizza @> '{"crust" : "gluten_free"}';
+```
+
+On top of using the containment operator, we can use `->` operator as well.
+
+### Using path expressions
+In addition to basic JSON functions and operators, the path expressions are also supported by postgres 
+```sql
+SELECT order_id, order_item_id, pizza->'toppings'->'meats' AS meats 
+FROM pizzeris.order_items 
+WHERE jsonb_path_exists(pizza, '$.toppings.meats[*] ? (exists(@.sausage))')
+ORDER BY order_id limit 5;
+```
+
+
+Rules :
+i) the path expression always starts from $
+ii) After $, the expression is followed by field name
+iii) [*] gets all the keys present inside the object 
+iv) ? equates the condition followed by it 
+v) the condition exists(@.sausage) checks if the sausage is present as meat type in any of the toppings 
+vi) multiple expressions can be chained together like below 
+```sql
+SELECT count(*) 
+FROM pizzeria.order_items 
+WHERE jsonb_path_exists(
+  pizza,
+  '$ (@.type=="custom") .toppings.cheese[*].parmesan ? (@ == "extra")'
+);
+```
+
+## Modifying JSON data
+Simplest way of updating the data to the database is to first get the data and then update it using the application layer 
+
+Selecting the pizza item 
+```sql
+SELECT pizza
+FROM pizzeria.order_items 
+WHERE order_id = $1 AND order_item_id = $2;
+```
+
+Updating the pizza item 
+```sql
+UPDATE pizzeria.order_items
+SET pizza = new_pozza_order_json
+WHERE order_id = $1 and order_item_id = $2;
+```
+
+The simplest way is not the best way, postgres provides a jsonb_set function which allows me to update the JSON objects 
+Selecting the existing object 
+```sql 
+SELECT jsonb_pretty(pizza)
+FROM pizzeria.order_items
+WHERE order_id = 20 AND order_item_id = 5;
+```
+
+Updating the object with new details 
+```sql
+UPDATE pizzeria.order_items
+SET pizza = jsonb_set(pizza,'{crust}','"regular"', false)
+WHERE order_id 20 and order_item_id = 5;
+```
+
+
+The function accepts below 
+i) The original object 
+ii) The path of the target which needs to be updated 
+iii) The new value that needs to be updated 
+iv) Behavior if the field is missing
+
+## Indexing JSON data
+Using an expression with B-Tree index 
+```sql 
+CREATE INDEX idx_pizza_type 
+ON pizzeria.order_items ((pizza ->> 'type'));
+```
+
+Using GIN indexes 
+In this index, whole JSON object structure is enforced as the index.

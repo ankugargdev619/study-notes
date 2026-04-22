@@ -993,3 +993,177 @@ ON pizzeria.order_items ((pizza ->> 'type'));
 
 Using GIN indexes 
 In this index, whole JSON object structure is enforced as the index.
+
+# Full text search with Postgres 
+## Basics of full-text search in Postgres 
+Before the text search below steps are required 
+1. Tokenisation : The original text data, usually referred to as a document, is parsed into tokens, which are smaller text components such as words or phrases.
+2. Normalization : The database converts the tokens into lexemes which are the basic unit of meaning in a language. Postgres removes case sensitivity, stem tokens to their root forms and removes stop words such as articles and prepositions. 
+**Before**
+5 explorers are traveling 
+**After**
+"5","explor","travel"
+3. Storing and Indexing : The lexemes are stored in the database to avoid repeating the tokenization and normalization steps. Postgres provides a special data type called tsvector, designed to store lexemes.
+4. Searching : The application executes full-text search queries on the lexemes stored in the database.
+
+> The tokens, lexemes can be checked using ts_debug function
+```sql
+SELECT token, description, lexemes, dictionary
+FROM ts_debug('5 explorers are traveling to a distant galaxy');
+```
+
+```bash
+   token    |   description    |  lexemes  |  dictionary  
+------------+------------------+-----------+--------------
+ 5          | Unsigned integer | {5}       | simple
+            | Space symbols    |           | 
+ explorers  | Word, all ASCII  | {explor}  | english_stem
+            | Space symbols    |           | 
+ are        | Word, all ASCII  | {}        | english_stem
+            | Space symbols    |           | 
+ traveeling | Word, all ASCII  | {traveel} | english_stem
+            | Space symbols    |           | 
+ to         | Word, all ASCII  | {}        | english_stem
+            | Space symbols    |           | 
+ a          | Word, all ASCII  | {}        | english_stem
+            | Space symbols    |           | 
+ distant    | Word, all ASCII  | {distant} | english_stem
+            | Space symbols    |           | 
+ galaxy     | Word, all ASCII  | {galaxi}  | english_stem
+(15 rows)
+
+```
+Stemming and stop word removal is done by the parser.
+
+### Full text search configurations 
+By default postgres uses certain dictionaries and configurations which are set at time of installation and default language is english.
+However these configurations can be updated later.
+
+We can check the list of the configurations present.
+```bash
+\dF
+               List of text search configurations
+   Schema   |    Name    |              Description              
+------------+------------+---------------------------------------
+ pg_catalog | arabic     | configuration for arabic language
+ pg_catalog | armenian   | configuration for armenian language
+ pg_catalog | basque     | configuration for basque language
+ pg_catalog | catalan    | configuration for catalan language
+ pg_catalog | danish     | configuration for danish language
+ pg_catalog | dutch      | configuration for dutch language
+ pg_catalog | english    | configuration for english language
+ pg_catalog | finnish    | configuration for finnish language
+ pg_catalog | french     | configuration for french language
+ pg_catalog | german     | configuration for german language
+ pg_catalog | greek      | configuration for greek language
+ pg_catalog | hindi      | configuration for hindi language
+ pg_catalog | hungarian  | configuration for hungarian language
+ pg_catalog | indonesian | configuration for indonesian language
+ pg_catalog | irish      | configuration for irish language
+ pg_catalog | italian    | configuration for italian language
+ pg_catalog | lithuanian | configuration for lithuanian language
+ pg_catalog | nepali     | configuration for nepali language
+ pg_catalog | norwegian  | configuration for norwegian language
+ pg_catalog | portuguese | configuration for portuguese language
+ pg_catalog | romanian   | configuration for romanian language
+ pg_catalog | russian    | configuration for russian language
+ pg_catalog | serbian    | configuration for serbian language
+ pg_catalog | simple     | simple configuration
+ pg_catalog | spanish    | configuration for spanish language
+ pg_catalog | swedish    | configuration for swedish language
+ pg_catalog | tamil      | configuration for tamil language
+ pg_catalog | turkish    | configuration for turkish language
+ pg_catalog | yiddish    | configuration for yiddish language
+(29 rows)
+```
+
+
+## Preparing data for full text search 
+1. Generating lexemes with the to_tsvector function 
+`to_tsvector([config regconfig, ] document text) returns tsvector`
+The function accepts 2 arguments 
+* `regconfig` : We can specify the existing full-text search configuration discussed earlier 
+* `document` : This parameter can be any text
+
+```sql
+SELECT * FROM to_tsvector(
+'The explorers must save the fragile peeace between Earth and the aliens');
+                              to_tsvector                               
+------------------------------------------------------------------------
+ 'alien':12 'earth':9 'explor':2 'fragil':6 'must':3 'peeac':7 'save':4
+(1 row)
+```
+
+In above result we can see that the stop words are removed but the position is maintained.
+If the word is repeated multiple times then the position of both the instances is stored together.
+```sql
+SELECT * FROM to_tsvector(
+postgres(# 'Space Explorers' || ' ' || 'The explorers must save the fragile peace between Earth and the aliens.');
+                                    to_tsvector                                     
+------------------------------------------------------------------------------------
+ 'alien':14 'earth':11 'explor':2,4 'fragil':8 'must':5 'peac':9 'save':6 'space':1
+(1 row)
+```
+
+
+2. Storing the tsvector lexemes in the database 
+The vectors can be stored in below manner
+* *Generate lexemes on the fly* : In this case we are not actually storing the lexemes but we are generating the lexeme on the fly.
+* *Store lexemes in a column* : The application adds a column of the tsvector type to a table and stores the generated lexemes there.
+* *Index lexemes directly* : In this case the lexemes are not stored but are indexed directly. But this requires defining the configuration within the index which may not work in few cases.
+
+```sql
+ALTER TABLE omdb.movies
+ADD COLUMN lexemes tsvector
+GENERATED ALWAYS AS (
+to_tsvector(
+'english', coalesce(name, '') ||
+' ' ||
+coalesce(description, ''))) STORED
+```
+
+Here we are taking name and description column and then changing it to vector and then storing it into a new column lexemes.
+
+## Performing full text search 
+Before performing the search, the search keyword needs to be converted into tsvector data type.
+We can combine the lexemes with the help of operators like &, | etc.
+
+Using *plainto_tsquery* 
+`plainto_tsquery([config regconfig, ] querytext text) returns tsquery`
+Function takes the raw text version of a query via the querytext argument and converts it into the tsquery type.
+
+```sql
+SELECT plainto_tsquery('a computer animated film');
+      plainto_tsquery       
+----------------------------
+ 'comput' & 'anim' & 'film'
+```
+
+`@@` operator is used to execute the query against the column
+```sql
+SELECT id, name
+FROM omdb.movies 
+WHERE lexemes @@ plainto_tsquery('a computer animated film');
+```
+
+The query works as follows 
+1. Transforms the user phrase 
+2. Performs the full-text search 
+3. Returns the result
+
+We can use advanced queries as well using `to_tsquery`
+```sql
+SELECT id, name
+FROM omdb.movies
+WHERE lexemes @@ to_tsquery('computer & animated & (lion | clownfish | donkey)');
+```
+
+*Note*
+We have `<->` operator which allows us to specify the followed by keyword 
+e.g.
+lion <-> king means lion is followed by king 
+we can also search for instance where there is certain distance between the words
+e.g.
+return <3> king 
+Here the king should be 3rd word after the return 
+

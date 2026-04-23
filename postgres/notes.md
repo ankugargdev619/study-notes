@@ -1167,3 +1167,121 @@ e.g.
 return <3> king 
 Here the king should be 3rd word after the return 
 
+
+## Ranking search results 
+When we search the data based on text embeddings, the postgres returns all the rows with a match but the order of the responses should be ranked based on the relevance.
+Postgres provides `ts_rank` function which provides ranking of response based on relevance.
+
+```sql
+SELECT id, name, vote_average,
+ts_rank(lexemes, to_tsquery('ghosts')) AS search_rank
+FROM omdb.movies
+WHERE lexemes @@ to_tsquery('ghosts')
+ORDER BY search_rank DESC, vote_average DESC NULLS LAST LIMIT 10;
+   id   |               name               | vote_average | search_rank 
+--------+----------------------------------+--------------+-------------
+    251 | Ghost                            | 6.3333301544 | 0.082745634
+ 210675 | A Most Annoying Ghost            |              | 0.082745634
+   1548 | Ghost World                      | 8.1428575516 | 0.075990885
+    620 | Ghostbusters                     | 7.0500001907 | 0.075990885
+  57784 | ParaNorman                       |            7 | 0.075990885
+  12175 | Ghosts of Goldfield              |            6 | 0.075990885
+ 185828 | Dhamilo Pani                     |              | 0.075990885
+ 166008 | Ghosts                           |              | 0.075990885
+  84904 | A Girl Walks Home Alone at Night |            9 |  0.06079271
+  25028 | Miracolo a Milano                |            8 |  0.06079271
+(10 rows)
+```
+
+Here we have calculated the rank using `ts_rank` function and then ordered based on the rank score.
+In this scenario, the weight of the element is not considered (say we want to show the movies with ghost word included in the name first)
+The weights can be passed on to certain columns 
+
+We can store the lexemes in the database like below 
+```
+ALTER TABLE omdb.movies
+ADD COLUMN lexemes tsvector
+GENERATED ALWAYS AS (
+setweight(to_tsvector('english',coalesce(name, '')), 'A') ||
+setweight(to_tsvector('english',coalesce(description, '')), 'B')
+) STORED;
+```
+
+The records will be stored like below, notice A and B after the lexeme  indicating the weight
+If the lexeme is present in the title, then it shows A and it shows B otherwise.
+```bash
+-[ RECORD 1 ]----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+id      | 3
+name    | Varjoja paratiisissa
+lexemes | 'aki':11B 'backdrop':37B 'capit':42B 'cashier':20B 'director':10B 'drama':35B 'driver':15B 'fall':22B 'film':3B 'finnish':9B,41B 'garbag':13B 'helsinki':27B 'ilona':21B 'kaurismäki':12B,33B 'love':24B 'mani':31B 'nikand':16B 'paratiisissa':2A 'play':43B 'proletarian':6B 'raini':26B,40B 'role':47B 'special':46B 'supermarket':19B 'trilog':7B 'truck':14B 'unemploy':18B 'varjoja':1A
+
+```
+
+Postgres supports four labels—
+A, B, C, and D 
+A typically assigned to the highest-priority parts of a document and D to the
+lowest-priority parts.
+Weights are passed as an array in the format 
+{D-weight, C-weight, B-weight, A-weight}.
+If the weights argument is omitted, the function uses default values: 
+{0.1, 0.2, 0.4, 1.0}. 
+
+The closer the weight is to 1, the higher the priority.
+
+## Highlighting search results 
+Sometimes we might need functionality to highlight the term which matches the search term. Postgres has inbuilt capabilities to support that feature.
+Postgres provide `ts_headline` function which returns fragments from the document which the query terms are highlighted. Additionally, the function supports the optional regconfig parameter for specifying a full-text search configuration and the options parameter to customize the output of the ts_headline function.
+
+```sql
+SELECT id, name, description,
+ts_headline(description, to_tsquery('pirates')) AS fragments,
+ts_rank(lexemes, to_tsquery('pirates')) AS rank
+FROM omdb.movies
+WHERE lexemes @@ to_tsquery('pirates:B')
+ORDER BY rank DESC LIMIT 1;
+-[ RECORD 1 ]------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+id          | 58
+name        | Pirates of the Caribbean: Dead Man's Chest
+description | Captain Jack is back! The bizarre and infamous pirate Captain Jack is in a battle with the ocean itself. Jack knows it won’t be easy and gathers friends to help him on his mission to find the heart of Davy Jones in this second and more slapstick film from the pirate trilogy.
+fragments   | <b>pirate</b> Captain Jack is in a battle with the ocean itself. Jack knows it won’t be easy
+rank        | 0.6957388
+
+```
+Here fragments don't include all the instances of the query word.
+
+`ts_healine` accepts parameters to increase number of fragments, number of words, delimiter etc.
+
+```sql
+SELECT id, name, description, ts_headline(description, to_tsquery('pirates'),
+'MaxFragments=3, MinWords=5, MaxWords=10,
+FragmentDelimiter=<ft_end>') AS fragments,
+ts_rank(lexemes, to_tsquery('pirates')) AS rank
+FROM omdb.movies
+WHERE lexemes @@ to_tsquery('pirates:B')
+ORDER BY rank DESC LIMIT 1;
+-[ RECORD 1 ]------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+id          | 58
+name        | Pirates of the Caribbean: Dead Man's Chest
+description | Captain Jack is back! The bizarre and infamous pirate Captain Jack is in a battle with the ocean itself. Jack knows it won’t be easy and gathers friends to help him on his mission to find the heart of Davy Jones in this second and more slapstick film from the pirate trilogy.
+fragments   | bizarre and infamous <b>pirate</b> Captain Jack is in a battle<ft_end>slapstick film from the <b>pirate</b> trilogy
+rank        | 0.6957388
+```
+
+
+
+## Indexing Lexemes :
+We are storing lexemes but to make the search more efficient, the lexemes should be indexed.
+We can use GIN or GiST indexing for lexemes 
+```sql
+CREATE INDEX idx_movie_lexemes_gin
+ON omdb.movies
+USING GIN (lexemes);
+```
+
+or 
+
+```sql
+CREATE INDEX idx_movie_lexemes_gist
+ON omdb.movies
+USING GIST (lexemes);
+```

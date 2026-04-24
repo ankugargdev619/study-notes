@@ -1285,3 +1285,122 @@ CREATE INDEX idx_movie_lexemes_gist
 ON omdb.movies
 USING GIST (lexemes);
 ```
+
+
+# Postgres Extensions 
+One of the reasons why the DB has gained so much popularity. Postgres provides multiple extensions and we can view the extension using below statement.
+```sql
+SELECT count(*) FROM pg_available_extensions;
+```
+
+The start working with any extension, we require to do below :
+a. Install extension on the Postgres database server.
+b. Installing / Enabling the extension
+
+## Enabling the extension
+Check if the extension has been installed
+
+```sql
+SELECT name, default_version, installed_version
+FROM pg_available_extensions
+WHERE name ='pgcrypto';
+   name   | default_version | installed_version 
+----------+-----------------+-------------------
+ pgcrypto | 1.3             | 
+(1 row)
+```
+
+Enable the extension
+
+```sql
+CREATE EXTENSION pgcrypto;
+```
+
+After installing the extension we can see that the extension is showing correctly 
+```sql
+SELECT name, default_version, installed_version
+FROM pg_available_extensions
+WHERE name ='pgcrypto';
+   name   | default_version | installed_version 
+----------+-----------------+-------------------
+ pgcrypto | 1.3             | 1.3
+(1 row)
+
+```
+Using pgcrypto extension to generate hashed passwords
+```sql
+INSERT INTO accounts (username, password_hash)
+VALUES ('ahamilton', crypt('SuperSecret123', gen_salt('bf')));
+```
+
+Here the gen_salt function is using the blowfish algorithm to generate the salt. The salt will be different for each password.
+Using salt is important because it reduces the blast radius in case the data is leaked.
+
+## Disabling the extension
+```sql
+DROP EXTENSION pgcrypto;
+```
+
+Important Extensions :
+pgvector, pg_ai, and pgvectorscale enable Postgres for generative AI and other
+AI/ML workloads, effectively turning it into a vector database. We’ll explore
+Postgres’s gen AI capabilities in detail in chapter 8.210
+Chapter 7 Postgres extensions
+¡ TimescaleDB is a well-known extension that makes it easy to store and analyze
+large volumes of time-series and event data. We’ll learn to use Postgres for
+time-series workloads in chapter 9.
+¡ PostGIS transforms Postgres into a database capable of storing, indexing, and
+querying geospatial data. We dedicate chapter 10 to PostGIS and its use cases.
+¡ pgmq allows Postgres to function as a lightweight message queue, capable of per-
+sisting and delivering application-specific messages and events. We’ll explore
+message queuing in Postgres in chapter 11.
+¡ pg_duckdb enables high-performance analytical workloads for Postgres. It does so
+by embedding DuckDB’s columnar-vectorized storage engine.
+The second category of extensions that we, as developers, can benefit from is “pro-
+gramming and procedural languages.” In chapter 2, we learned how to create stored
+procedures using the PL/pgSQL procedural language. However, you don’t need to
+be a PL/pgSQL expert to create custom database functions or procedures that run
+inside Postgres. In most cases, you’ll likely find an extension that allows you to write
+database functions in your preferred programming language. Here are some examples
+for major languages:
+¡ PLV8 embeds the V8 JavaScript engine into Postgres, allowing us to write
+JavaScript-based database logic and call it from SQL. Additionally, we can use PLV8
+together with the PgCompute client-side library to execute JavaScript functions
+directly on the database from our application logic, bypassing SQL.
+¡ PL/Java, PL/Python, and PL/Rust enable us to create database functions, proce-
+dures, and triggers using Java, Python, or Rust, respectively.
+The third category of extensions falls under “connectors and foreign data wrappers”
+because they allow Postgres to connect to external data sources and query remote data
+transparently using standard SQL, as if it were stored in regular Postgres tables. With
+this type of extension, Postgres can act as a unified data layer, pulling data from various
+sources—some of which might not even support SQL natively. Here are a few examples
+from this category:
+¡ file_fdw is a foreign data wrapper (FDW) that allows querying data from the file
+system.
+¡ postgres_fdw, mysql_fdw, oracle_fdw, and sqlite_fdw let Postgres connect to
+and query other SQL databases, such as a remote Postgres server, MySQL, Ora-
+cle, or SQLite.
+¡ redis_fdw, parquet_s3_fdw, and kafka_fdw enable Postgres to retrieve data from
+non-SQL data sources such as Redis, S3, and Kafka.
+The fourth category of extensions, “query and performance optimization,” helps ana-
+lyze query execution statistics and improve performance when necessary. Here are a
+few extensions in this category:Postgres-compatible solutions
+211
+¡ pg_stat_statements helps track the planning and execution statistics of all SQL
+statements executed by Postgres.
+¡ auto_explain automatically logs execution plans for slow queries, making it
+easier to diagnose performance problems without manually running EXPLAIN
+ANALYZE.
+¡ hypopg adds support for hypothetical indexes, allowing us to test different index-
+ing strategies without creating real indexes.
+The fifth category, “tools and utilities,” includes extensions that simplify common
+Postgres tasks, automate operations, and enhance database usability. Here are a few
+examples:
+¡ pg_cron is a simple cron-based scheduler that runs in Postgres, helping automate
+routine tasks associated with the database.
+¡ PostgreSQL Anonymizer lets users anonymize or mask personal and sensitive data
+using techniques like dynamic masking and pseudonymization.
+¡ pgaudit provides detailed session and object-level audit logging through Post-
+gres’s standard logging facility.
+¡ pg_partman simplifies the creation and management of both time-based and
+number-based table partitions.

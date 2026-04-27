@@ -1404,3 +1404,128 @@ using techniques like dynamic masking and pseudonymization.
 gres’s standard logging facility.
 ¡ pg_partman simplifies the creation and management of both time-based and
 number-based table partitions.
+
+
+# Postgres for generative AI 
+## Postgres and LLMs 
+Different type os tools LLMs can access
+Web tools : Access to web 
+Matplotlib : If we want the LLM to generate visualizations 
+Infrastructure : LLM can connect to cloud to spin up an instance 
+Jupyter environment : LLM can write execute and debug the code 
+Postgres : LLM can directly interact with the database to assist the user based on the data available in the database
+
+## Postgres and embedding models : 
+Embedding models is another kind of model which is used in gen AI other than LLMs.
+A vector embedding is a numeric representation of the words, sentences and other data.
+Embedding models are trained to capture the meaning of the sentence.
+These models are useful for below use cases 
+1. Semantic search 
+2. Clustering
+3. Recommendations
+4. RAG 
+
+## Starting Postgres with pgvector
+`pgvector` can be installed similar to other extensions and plugins.
+
+Starting pgvector with volume
+
+```bash
+docker volume create postgres-pgvector-volume
+
+docker run --name postgres-pgvector \ 
+    -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password \ 
+    -p 5432:5432 \ 
+    -v postgres-pgvector-volume:/var/lib/postgresql/data \ 
+    -d pgvector/pgvector:0.8.0-pg17
+```
+
+
+Enabling extension 
+```sql
+CREATE EXTENSION vector;
+```
+
+## Generating Embeddings : 
+Below items are required as minimum : 
+1. Target data : The text for which we want to generate the data
+2. Embedding model : A model that converts text into vector embeddings. The dimensions of the model play an important role. Generally more accuracy is achieved through model with higher dimensions.
+3. Chunking : We need to split huge amount of data into a chunk of data which can be easily fed to the model.
+4. Vector DB : A database capable of storing the generated embeddings and supporting vector similarity search.
+
+The vector need to be generated using an embedding model which is provided by multiple services like openai.
+
+## Performing vector similarity search
+Vector similarity search is also known as nearest neighbor search or semantic search.
+The user types a question in natural language and the application generates an embedding for the query. Then the application generates an embedding for the query.
+
+The similarity is found out by calculating the distance between the vector embeddings.
+The pgvector allows consine, euclidean and inner product to calculate the distance.
+Cosine is the commonly used for Gen AI applications.
+
+## Indexing vector embeddings
+The searching through vectors is a complicated operation. So the search efficiency can be improved by indexing the embeddings.
+Below are type of indexes supported by postgres 
+1. IVFFlat : This approach indexes the data by listing it as a cluster and uses IVFFlat algorithm to compute the centroids by applying the k-means clustering algorithm.
+Creating the index
+```sql
+CREATE INDEX movie_embeddings_ivfflat_idx
+ON omdb.movies
+USING ivfflat (movie_embedding vector_cosine_ops) WITH (lists = 5);
+```
+The statement also defines the WITH (lists = 5) clause, which instructs Postgres to
+create the index with five lists. The pgvector documentation (https://github.com/
+pgvector/pgvector) suggests choosing the number of lists based on the following
+rule:
+Choose an appropriate number of lists - a good place to start is rows / 1000 for up to
+1M rows and sqrt(rows) for over 1M rows.
+
+The IVFFlat index doesn't always return the correct results because the data is searched from the nearest cluster only. But the result might be present in another cluster.
+To improve on this postgres provides probes count .
+```BEGIN
+BEGIN;
+SET LOCAL ivfflat.probes = 3;
+SELECT…
+COMMIT;
+```
+
+This allows using multiple clusters.
+
+This approach is good if the data in the database is relatively stable and no new data is supposed to be entered since the centroid are created at the time of creating index and are not updated later.
+
+2. HNSW : 
+Hierarchical Navigable Small World Graph creates a multilayer graph with vector embeddings, where each node represents a vector and edges connect similar vectors based on proximity.
+The layers at top are sparsely connected but the layers at the bottom are densely connected.
+Creating HNSW index 
+```sql
+CRREATE INDEX movie_mebeddings_hnsw_idx
+ON omdb.movies
+USING hnsw (movie_embedding vector_cosine_ops)
+WITH (m=8, ef_construction = 16);
+```
+
+m defines maximum number of connections per node in the graphs. A higher number of connections creates a denser graph. It also increases index build time and memory usage.
+ef_construction : controls the size of the candidate list during index construction. This list holds closest candidates of a particular node during graph traversal.
+
+The parameters need to be modified to check the accuracy of the results, one option is to delete old index and create a new index.
+Another option to optimise is to tweak ef_search as below
+```sql
+BEGIN;
+SET LOCAL hnsw.ef_search = 50;
+SELECT id, name
+FROM omdb.movies
+ORDER BY movie_embedding <=>
+(SELECT phrase_embedding
+FROM omdb.phrases_dictionary
+WHERE phrase =
+'A movie about a Jedi who fights against the dark side of the force')
+LIMIT 3;
+COMMIT;
+```
+
+
+When to use what?
+1. IVFFlat : when the build time is important and the data would not change significantly.
+2. HNSW : When search accuracy is more important 
+
+

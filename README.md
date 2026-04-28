@@ -1,8 +1,8 @@
 # Things to learn
 i) CS50 course : Completed<br>
 ii) Postgres : Under Progress<br>
-iii) AI / ML Bootcamp : Under Progress<br>
-iv) Complete Javascript Book revision
+iii) Complete Javascript Book revision
+iv) AI / ML Bootcamp : Under Progress<br>
 v) Database course : Once I'm in sync with AI / ML Bootcamp<br>
 vi) DSA : Once Database course is completed<br>
 vii) System Design Knowledge<br> 

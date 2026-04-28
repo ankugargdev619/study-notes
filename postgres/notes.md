@@ -1529,3 +1529,18 @@ When to use what?
 2. HNSW : When search accuracy is more important 
 
 
+## Implementing RAG 
+Using postgres as a vector database allows us to build sophisticated gen AI applications that combine embedding models with Postgres to help users find relevant information or analyze private data using natural language.
+The RAG consists of below parts 
+1. Context Retrieval : User prompt is sent to retrieve relevant information present in the DB
+2. LLM Augmentation : Provide the retrieved context to the LLM to augment its knowledge.
+3. Response Generation Let the LLM perform a task for the user if neccessary 
+
+A RAG system works as below 
+1. Request is sent by the customer 
+2. Request is converted into embedding through embedding model 
+3. Embedding is provided to vector DB for performing a search which returns the context 
+4. The context is sent to the LLM along with the question which understands the request and provides response based on the context provided
+
+
+

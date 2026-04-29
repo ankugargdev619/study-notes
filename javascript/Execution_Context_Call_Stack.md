@@ -2,6 +2,65 @@
 All the code inside javascript runs inside an execution context.
 When the program is loaded, the `Global Execution Context` is created by the Engine. There can be only 1 global execution context.
 
+**Execution Context**
+It is an internal object created by Javascript engine to execute the code. It contains below elements.
+i. Lexical Environment : This is an environment where the code runs and it contains below:
+a. Environment Record : Stores reference of variables and functions
+b. Outer Reference : Link to the parent scope
+
+ii. Variable Environment : A variable environment is a special part of which stores only var variables and function declarations. This environment usually doesn't change much after creation.
+
++--------------------------------------------------+
+|                Execution Context                 |
++--------------------------------------------------+
+|                                                  |
+|  +--------------------------------------------+  |
+|  |            Lexical Environment             |  |
+|  |--------------------------------------------|  |
+|  |  Environment Record                        |  |
+|  |   ├── let, const                           |  |
+|  |   ├── function declarations                |  |
+|  |                                            |  |
+|  |  Outer Reference ----------------------┐   |  |
+|  +----------------------------------------|---+  |
+|                                           |      |
+|  +----------------------------------------v---+  |
+|  |            Variable Environment            |  |
+|  |--------------------------------------------|  |
+|  |  Environment Record                        |  |
+|  |   ├── var variables → undefined            |  |
+|  |   ├── function declarations                |  |
+|  +--------------------------------------------+  |
+|                                                  |
+|  +--------------------------------------------+  |
+|  |            This Binding                    |  |
+|  |--------------------------------------------|  |
+|  |  this → depends on how function is called  |  |
+|  +--------------------------------------------+  |
+|                                                  |
++--------------------------------------------------+
+
+Difference between Lexical Environment and Variable Environment
+Lexical Environment                Variable Environment
+-------------------              -----------------------
+Stores:                           Stores:
+- let (stored in TDZ)            - var
+- const (stored in TDZ)          - function declarations
+- block-scoped bindings
+
+Scope type:                      Scope type:
+- Block scope                    - Function scope
+
+Updates during execution?        Updates during execution?
+- YES (dynamic changes)          - Mostly static after creation
+
+Used in modern JS?               Used in modern JS?
+- YES (primary system)           - Legacy behavior (for var)
+
+
+
+
+
 To keep track of execution context, call stack is used.
 Initially Global Execution Context is stored at top of Call Stack.
 

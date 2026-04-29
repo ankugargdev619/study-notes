@@ -71,3 +71,9 @@ The memory is allocated to var b during Global Execution Context creation.
 The value of 100 is assigned to b during the execution of global context.
 During creation of the functional execution context, the global variable b is shadowed by the lexical scoped variable b and the output will be again undefined.
 
+
+## Call Stack
+Call stack is a mechanism for an interpreter to keep track of its place in the script, which function called within another function etc.
+Javascript operates in a single threaded environment therefore it can execute only one operation at a time. The call stack is the part of Javascript that keeps track of the execution process.
+
+

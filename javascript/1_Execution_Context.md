@@ -1,3 +1,7 @@
+Javascript was historically and interpreted language but now it is hybrid language which uses JIT compiler to compile the code just before the execution.
+
+JIT breaks the code into small parts of code to execute it and it is done through Execution Context.
+
 ## How Javascript executes the code 
 All the code inside javascript runs inside an execution context.
 When the program is loaded, the `Global Execution Context` is created by the Engine. There can be only 1 global execution context.

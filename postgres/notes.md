@@ -1,4 +1,4 @@
-# Postgres Notes
+#rm ~/.local/state/nvim/swap/%home%ankugarg%study%study-notes%postgres%notes.md.swp Postgres Notes
 # Commands to interact with Postgres
 ## Starting Postgres with docker
 ```bash
@@ -1542,5 +1542,88 @@ A RAG system works as below
 3. Embedding is provided to vector DB for performing a search which returns the context 
 4. The context is sent to the LLM along with the question which understands the request and provides response based on the context provided
 
+
+# Postgres for time series
+Time series data is a type of data which has time at which it was recorded at every data point.
+For example 
+```sql
+CREATE TABLE heart_rate_measurements (
+  watch_id INT NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  heart_rate INT NOT NULL,
+  activity TEXT NOT NULL CHECK (
+    activity IN ('walking', 'sleeping', 'resting', 'workout')
+  )
+);
+```
+
+Considering if the data stored in the table is recorded after interval of one minute, then there will be 1,440 records for each user.
+There can be so many records for each day and this can get out of hand very quickly.
+
+Postgres offers *table partitioning* which allows us to split one large logical table into smaller physical tables called partitions
+```sql
+CREATE TABLE heart_rate_measurements (
+  watch_id INT NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  heart_rate INT NOT NULL,
+  activity TEXT NOT NULL CHECK (
+    activity IN ('walking','sleeping','resting','workout')
+  )
+) PARTITION BY RANGE (recorded_at);
+```
+
+Here partition by clause defines that the table is split into partitions based on the values of the recorded_at column.
+
+Now the partitions need to be created at regular intervals like below.
+For Jan month 
+```sql
+CREATE TABLE measurements_jan2025
+  PARTITION OF heart_rate_measurements
+  FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+```
+For Feb Month
+```sql
+CREATE TABLE measurements_feb2025
+  PARTITION OF heart_rate_measurements 
+  FOR VALUES FROM('2025-02-01') TO ('2025-03-01');
+```
+
+This means that the I need to create new tables every month or maybe few months in advance. But this can be solved with help of few extensions which can schedule the creation of the tables.
+
+The main advantage with partition is that we can query between the different partitioned tables with single query.
+```sql
+SELECT * FROM heart_rate_measurements
+WHERE recorded_at BETWEEN '2025-01-30' AND '2025-02-02';
+```
+
+Also we don't need to change the table name while creating a new record in the table.
+```sql
+INSERT INTO heart_rate_measurements (watch_id, recorded_at, heart_rate, activity)
+VALUES (1,'2025-01-02 00:00:30+05:30', 80, 'sleeping');
+```
+
+
+## Exploring timescale hypertables
+In plain tables, the partition has to be created manually and this is a hassle. But we can use the hypertables which can automatically create the partitions.
+Below is a statement can be used to create hypertables.
+```sql 
+SELECT create_hypertable(
+  relation => 'watch.heart_rate_measurements',
+  dimenstion => by_range('recorded_at',interval,'1 month'),
+  create_default_indexes => false
+);
+```
+
+The statement covers below 
+i. The relation parameter defines the name of the table we want to turn into a hypertable.
+ii. The dimension parameter specifies the partitioning method.
+iii. create_default_indexes controls whether deafult indexes should be created for the partitioned tables.
+
+The timescale Db uses term chunk for the partition. so terms partition, chunk and child tables are interchangable.
+
+We can use show_chunks which shows the current list of chunks.
+The chunks are automatically created and the select statement is optimised to search from the chunks which qualify the criteria.
+
+**The time scale is useful in implementing data retention policy where the data of the users is deleted automatically within 30 days.**
 
 

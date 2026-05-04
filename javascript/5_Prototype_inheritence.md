@@ -159,3 +159,36 @@ Security & unpredictable
 `__proto__` : This exists on all the object, it is used internally to get and set value of the prototype. Should not be used as per standard practice as using it may break down the optimizations and security vulnerabilities.
 `Object.getPrototypeOf` : It is a standard way to read prototype.
 
+## How new Works
+```js
+const user = new User("Ankit");
+
+// Below is the actual thing that happens
+const obj = {};                         // Step 1
+obj.__proto__ = User.prototype;         // Step 2
+User.call(obj, "Ankit");                // Step 3
+return obj;                             // Step 4
+
+```
+
+## Edge cases
+```js
+function A() {
+  return { x: 10 };
+}
+
+new A(); // returns { x: 10 }
+```
+
+Understand how the new works internally.
+
+## Inheritance working
+```js 
+class Admin extends User {}
+
+converts to 
+Admin.prototype = Object.create(User.prototype);
+Admin.prototype.constructor = Admin;
+```
+
+

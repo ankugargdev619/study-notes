@@ -1627,3 +1627,102 @@ The chunks are automatically created and the select statement is optimised to se
 **The time scale is useful in implementing data retention policy where the data of the users is deleted automatically within 30 days.**
 
 
+## Analyzing timescale data 
+### Using time_bucket function
+`time_bucket` function simplifies the aggregation of time-series data. The data can be simplified into 5 mins, hourly, daily, monthly aggregations.
+`time_bucket(bucket_width, ts, [origin, timezone, offset])`
+
+### Usingg time_bucket_gapfill
+`time_bucket_gapfill`  : Sometimes the data for certain time period may be missing,`time_bucket` usually ignores the time at which there is no period available. This fuction can be used to fill the data for the missing time.
+```sql 
+SELECT watch_id, time_bucket_gapfill('1 minute', recorded_at) AS minute,
+AVG(heart_rate)::int AS avg_rate
+FROM watch.heart_rate_measurements
+WHERE watch_id=1 AND recorded_at BETWEEN '2025-03-02 07:25'
+AND '2025-03-02 07:36'
+GROUP BY watch_id, minute ORDER BY minute;
+```
+
+```bash
+ watch_id |         minute         | avg_rate 
+----------+------------------------+----------
+        1 | 2025-03-02 07:25:00+00 |      127
+        1 | 2025-03-02 07:26:00+00 |      132
+        1 | 2025-03-02 07:27:00+00 |      132
+        1 | 2025-03-02 07:28:00+00 |      121
+        1 | 2025-03-02 07:29:00+00 |      121
+        1 | 2025-03-02 07:30:00+00 |         
+        1 | 2025-03-02 07:31:00+00 |         
+        1 | 2025-03-02 07:32:00+00 |      122
+        1 | 2025-03-02 07:33:00+00 |      136
+        1 | 2025-03-02 07:34:00+00 |      132
+        1 | 2025-03-02 07:35:00+00 |         
+        1 | 2025-03-02 07:36:00+00 |      125
+(12 rows)
+
+```
+
+This will populate the dates but the data will be missing.
+To solve this we can use `LOCF`
+
+```sql 
+SELECT watch_id, time_bucket_gapfill('1 minute', recorded_at) AS minute,
+LOCF(AVG(heart_rate)::int) AS avg_rate
+FROM watch.heart_rate_measurements
+WHERE watch_id=1 AND recorded_at BETWEEN '2025-03-02 07:25'
+AND '2025-03-02 07:36'
+GROUP BY watch_id, minute ORDER BY minute;
+```
+
+```bash 
+ watch_id |         minute         | avg_rate 
+----------+------------------------+----------
+        1 | 2025-03-02 07:25:00+00 |      127
+        1 | 2025-03-02 07:26:00+00 |      132
+        1 | 2025-03-02 07:27:00+00 |      132
+        1 | 2025-03-02 07:28:00+00 |      121
+        1 | 2025-03-02 07:29:00+00 |      121
+        1 | 2025-03-02 07:30:00+00 |      121
+        1 | 2025-03-02 07:31:00+00 |      121
+        1 | 2025-03-02 07:32:00+00 |      122
+        1 | 2025-03-02 07:33:00+00 |      136
+        1 | 2025-03-02 07:34:00+00 |      132
+        1 | 2025-03-02 07:35:00+00 |      132
+        1 | 2025-03-02 07:36:00+00 |      125
+(12 rows)
+```
+
+## Using continuous aggregates 
+### Creating and using aggregates 
+A continuous aggregate is a apecial type of Postgres materialized view that stores its precomputed result in hypertable.
+These views can be queries like regular tables and the hypertables ensures that the result is partitioned appropriately.
+```js 
+CREATE MATERIALIZED VIEW watch.low_heart_rate_count_per_5min
+WITH (timescaledb.continuous) AS
+SELECT
+watch_id,
+time_bucket('5 minutes', recorded_at) AS bucket,
+MIN(heart_rate) as min_rate,
+COUNT(*) FILTER (WHERE heart_rate < 50) AS low_rate_count,
+COUNT(*) AS total_measurements
+FROM watch.heart_rate_measurements
+GROUP BY watch_id, bucket;
+```
+
+## Refreshing an aggregation policy 
+The TimescaleDB extension allows us to define a policy that automatically refreshes a
+continuous aggregate. Let’s use the following query to define a sample policy.
+```js 
+SELECT add_continuous_aggregate_policy
+('watch.low_heart_rate_count_per_5min',
+start_offset => INTERVAL '15 minutes',
+end_offset => INTERVAL '1 minute',
+schedule_interval => INTERVAL '1 minute');
+```
+
+## Indexing time-series data
+Indexing can be used to optimise the queries using the database's built in indexing capabilities.
+i. B-tree index
+ii. BRIN indexes
+
+

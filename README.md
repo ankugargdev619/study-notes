@@ -1,16 +1,19 @@
 # Things to learn
-i) CS50 course : Completed<br>
-ii) Postgres : Under Progress<br>
-iii) Complete Javascript Book revision <br>
-iv) AI / ML Bootcamp : Under Progress<br>
-v) Database course : Once I'm in sync with AI / ML Bootcamp<br>
-vi) DSA : Once Database course is completed<br>
-vii) System Design Knowledge<br> 
-viii) Head First Python : After DSA<br>
-ix) Learn about Internet : A course for basic understanding
-x) Prompt Engineering : Read a book 
-xi) Read a book on caching 
-xii) Complete the cohort - Devops / Caching etc. 
+- CS50 course : Done
+
+- Postgres : Under Progress
+- AI / ML Bootcamp : WIP
+- System Design Knowledge : WIP
+
+- Complete Javascript Book revision : TODO
+- Database course : TODO [link](https://www.youtube.com/playlist?list=PLSE8ODhjZXjbj8BMuIrRcacnQh20hmY9g)
+- Computer Networks : TODO [link](https://www.youtube.com/playlist?list=PLWl7jvxH18r3nnotitKkyAjq268PQGc0-)
+- Operating Systems : TODO [link](https://www.youtube.com/playlist?list=PLF2K2xZjNEf97A_uBCwEl61sdxWVP7VWC)
+- DSA : TODO
+- Head First Python : TODO
+- Prompt Engineering : TODO 
+- Read a book on caching 
+- Complete the cohort - Devops / Caching etc. 
 
 # Skills required
 Frontend : <br>

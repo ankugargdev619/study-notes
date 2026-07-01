@@ -1,9 +1,10 @@
 # Things to learn
 - CS50 course : Done
 
-- Postgres : Under Progress
+- Postgres : Done
 - AI / ML Bootcamp : WIP
 - System Design Knowledge : WIP
+- DSA : 
 
 - Complete Javascript Book revision : TODO
 - Database course : TODO [link](https://www.youtube.com/playlist?list=PLSE8ODhjZXjbj8BMuIrRcacnQh20hmY9g)

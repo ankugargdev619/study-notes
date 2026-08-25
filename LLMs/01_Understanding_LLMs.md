@@ -84,4 +84,57 @@ Say if the role of the LLM is to translate the text from one language to another
         └─────────────────────────────────────────────────────┘
 
 
+### BERT vs GPT
+**BERT** : Bidirectional Encoder Representations from Transformers
+- It is bidirectional
+- It is used to understand the input text
+- It is present on the encoding side
 
+**GPT** : Generative Pre-Trained Transformer
+- It is unidirectional
+- It is used to generate the next word based on the understanding of previous words
+- It is present on the decoding side
+
+### Types of tasks
+- Text Completion : It takes the input text and completes the sentence
+- Zero-Shot : Completes a task without any explicit example like translation to another language
+- Few-Shot : Few training examples are present and the classification
+
+> LLM vs Transformer
+> LLMs are based on the transformer architecture but not all LLMs are based on transformer architecture, few are based on convulational architecture.
+> Also not all transformers are LLMs, they can be used for computer vision applications as well
+
+## Utilizing large datasets
+There are datasets available on the internet which can be used to train the LLMs, the major training dataset used is CommonCrawl.
+
+> Pre-training a model like GPT costs around $4.6 million, since these models are reusable as foundational models this makes it easier for people to fine tune the models.
+
+## GPT Architecture 
+GPTs are trained on relatively simple next-word prediction tasks and work really well.
+In GPT architecture, the model goes through a lot of iterations through transformer blocks which keeps on predicting the next word.
+Each layer consists of below flow
+`[ Input Text --> Preprocessing Steps --> Decoder --> Output Layers --> ]`
+Output of one block acts as input on another block and this continues for many iterations.
+
+This was originally designed for language  translation, GPT models are also capable of doing tasks other than translation.
+**The ability to perform tasks that the model wasn't explicitly trained to perform is called an emergent behavior.**
+
+## Steps in building a Large Language Model
+1. Stage 1 : This stage  involves building an LLM and after Pre-Training it becomes a foundation model
+a. Data preparation & sampling
+b. Attention Mechanism
+c. LLMs Architecture
+d. Pre-training
+
+2. Stage 2 : In this stage the foundation model is trained and evaluated
+a. Training Loop
+b. Model Evaluation
+c. Load Pre-trained weights
+d. Fine Tuning
+
+3. Stage 3 : This stage involves deciding the final use case of the model by fine tuning
+Fine tuning can convert foundation model into a personal assistant or classifier depending on the data it is trained on
+
+
+
+ 

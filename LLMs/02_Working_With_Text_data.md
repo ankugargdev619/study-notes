@@ -21,4 +21,3 @@ A common and easy approach can to split the text with words. There are multiple 
 2. Converting tokens into token IDs
 Now each token requires converting it into a corresponding token ID representation. This is an intermediate step which we take before converting it into vectors.
 
-

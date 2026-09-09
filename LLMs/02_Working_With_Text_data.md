@@ -61,3 +61,23 @@ This is where the pad comes in and the tensor is converted into
  [25, PAD, PAD, PAD, PAD],
  [12, 67, 88, PAD, PAD]
 ]
+
+## Byte pair encoding
+BPE is the tokenization scheme which has been used to tokenise and train LLMs such as GPT-2, GPT-3
+We can use a library like tiktoken.
+The Byte Pair Encoding Algorithm can be used to encode and decode any words which are out of its vocabulary. The algorithm achieves this by breaking down the larger text into smaller sub words or sometimes even the characters.
+
+This enables the algorithm to have an ability to handle any random unknown words
+
+## Data sampling with a sliding window
+The main task of the LLMs is to predict the next word or token based on the input that it has.
+To prepare content for the training of the LLM, the input text is divided into the input target pairs.
+The input is the list of the tokens which are input and the target is the expected next token or the word.
+So this acts as a sliding window
+There are few important parameters which play an important role in preparing the data the model training
+1. Batch Size : This sets the number of input and target embedding pairs which will be present inside a single batch, a smaller batch uses less memory while training but this leads to a noisy model 
+2. Max Length : The chunk size of embedding which means what will decide the number of tokens which will be present
+3. Stride : When batch size is more than 1, the stride decides the offset between the tokens of first and second input or target chunk
+4. Shuffle : If shuffle is set to true then the chunks inside the batch are not sequential in nature
+
+## Creating token embeddings

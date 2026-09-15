@@ -81,3 +81,106 @@ There are few important parameters which play an important role in preparing the
 4. Shuffle : If shuffle is set to true then the chunks inside the batch are not sequential in nature
 
 ## Creating token embeddings
+This is the last step in preparing the input text for LLM training. In this step, the token ID is converted into vector embedding.
+The embedding weights are initialised first with random weights which acts as a starting point for the LLMs.
+A continuous vector representation is necessary since GPT like LLMs are deep neural networks trained with the back propagation algorithm.
+
+When a token is retrieved from an embedding layer, it gets the weights of the layer at that index.
+Below is an example where we have created an embedding layer of size 6 and dimension 3, which means each token will have dimension of 3 but only 6 tokens are present in the layer
+Below is the code snippet
+
+```python
+# Creating token embeddings
+input_ids = torch.tensor([2,3,5,1])
+vocab_size = 6
+output_dim = 3
+
+torch.manual_seed(123)
+embedding_layer = torch.nn.Embedding(vocab_size, output_dim)
+print(embedding_layer.weight)
+
+```
+``` 
+Output
+Parameter containing:
+tensor([[ 0.3374, -0.1778, -0.1690],
+        [ 0.9178,  1.5810,  1.3010],
+        [ 1.2753, -0.2010, -0.1606],
+        [-0.4015,  0.9666, -1.1481],
+        [-1.1589,  0.3255, -0.6315],
+        [-2.8400, -0.7849, -1.4096]], requires_grad=True)
+```
+
+# Apply the embedding layer to a token to get the embedding
+print(embedding_layer(torch.tensor([5])))
+
+```
+tensor([[-2.8400, -0.7849, -1.4096]], grad_fn=<EmbeddingBackward0>)
+```
+```
+```
+
+Notice that the output is getting the vector at the 5th index of the embedding layer
+
+
+## Encoding position
+A problem with the attention mechanism in LLMs is that they don't have a sense of the position.
+Each word will be mapped to a token irrespective of the position 
+The deterministic position-independent embedding of the token ID is good for reproducibility.
+There can be 2 types of position embeddings
+1. Absolute Positional Embedding : The embedding is directly associated with the position of the token in a sequence. In this case a unique embedding is added to the input sequence to convey the exact location.
+Input Tokens
+
+┌─────┐   ┌─────┐   ┌───────┐
+│  I  │   │ am  │   │ happy │
+└──┬──┘   └──┬──┘   └───┬───┘
+   │         │           │
+   ▼         ▼           ▼
+ Token      Token       Token
+Embedding  Embedding   Embedding
+   │         │           │
+   +         +           +
+   │         │           │
+ Pos 0      Pos 1       Pos 2
+   │         │           │
+   ▼         ▼           ▼
+┌──────┐  ┌───────┐  ┌──────────┐
+│ I+P₀ │  │ am+P₁ │  │ happy+P₂ │
+└──────┘  └───────┘  └──────────┘
+     │         │          │
+     └─────────┴──────────┘
+                │
+                ▼
+          Transformer
+
+2. Relative Positional Embedding : The embedding focuses on relative position or the distance between 2 tokens. This means that the model learns the relationships in terms of "how far apart" rather than "at which position".
+
+Input Tokens
+
+┌─────┐   ┌─────┐   ┌───────┐
+│  I  │   │ am  │   │ happy │
+└──┬──┘   └──┬──┘   └───┬───┘
+   │         │           │
+   └─────────┼───────────┘
+             ▼
+         Self-Attention
+             │
+             │
+     ┌───────┴────────┐
+     │ Relative       │
+     │ Positions      │
+     └───────┬────────┘
+             │
+     ┌───────┼───────────────┐
+     ▼       ▼               ▼
+   I ↔ am   I ↔ happy     am ↔ happy
+     │       │               │
+    +1      +2              +1
+     │       │               │
+     └───────┴───────────────┘
+             │
+             ▼
+        Transformer
+
+
+

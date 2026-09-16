@@ -59,4 +59,10 @@ Self-attention mechanism can be implemented step by step by introducing 3 traina
 > **Weight parameters vs attention weights**
 > Weight parameters are the parameters of the neural network which are optimised during the training. These are not attention weights, attention weights determine the extent to which a context vector depends on the different parts of the input.
 
+The calculated weights are then normalized and normalization is important to improve the training performance by avoiding small gradients which may slow down the training when the gradient nears small numbers.
 
+> **Why the terms query, key and value?**
+> The terms "key", "query" and "value" in the context of attention mechanisms are borrowed from the domain of information retrieval and databases where similar concepts are used to store, search and retrieve information.
+> A query is analogous to a search query in a database. It represents the current item, the model focuses on or tries to understand. The query is used to probe the other parts of the input sequence to determine how much attention to pay to them.
+> The key is like a database key used for indexing and searching. In the attention mechanism, each item in the input sequence has an associated key. These keys are used to match the query.
+> The value in this context is similar to the value in a key-value pair in a database. It represents the actual content or representation of the input items. Once the model determines which keys are most relevant to the query, it retrieves the corresponding values.

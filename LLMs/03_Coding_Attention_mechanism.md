@@ -66,3 +66,15 @@ The calculated weights are then normalized and normalization is important to imp
 > A query is analogous to a search query in a database. It represents the current item, the model focuses on or tries to understand. The query is used to probe the other parts of the input sequence to determine how much attention to pay to them.
 > The key is like a database key used for indexing and searching. In the attention mechanism, each item in the input sequence has an associated key. These keys are used to match the query.
 > The value in this context is similar to the value in a key-value pair in a database. It represents the actual content or representation of the input items. Once the model determines which keys are most relevant to the query, it retrieves the corresponding values.
+
+## Hiding future words with casual attention
+For a large variety of LLMs, the self attention mechanism needs to consider only the tokens that appear prior to the current position when predicting the next token in the sequence. It restricts a model to only consider previous and current inputs in a sequence when processing any given token when computing attention scores.
+We need to modify the standard self-attention mechanism to a casual attention mechanism.
+
+### Applying a casual attention mask
+Our next step is to implement the casual attention mask in code. To implement the steps to apply a casual attention mask to obtain the masked attention weights.
+The new weights are calculated and the matrix is renormalised which makes sure that the information from future tokens doesn't contribute to the weights.
+
+> **Dropout** : It is a technique where randomly selected hidden layer units are ignored during training, this helps in getting rid of the over fitting problem. The dropout is applied 2 times: after calculating the attention weights or after applying the attention weights to the value vectors. Here we will apply the dropout mask after computing the attention weights.
+
+While applying the dropout, the half of the items in the zeroes out randomly.

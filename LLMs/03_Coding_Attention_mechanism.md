@@ -62,7 +62,7 @@ Self-attention mechanism can be implemented step by step by introducing 3 traina
 The calculated weights are then normalized and normalization is important to improve the training performance by avoiding small gradients which may slow down the training when the gradient nears small numbers.
 
 > **Why the terms query, key and value?**
-> The terms "key", "query" and "value" in the context of attention mechanisms are borrowed from the domain of information retrieval and databases where similar concepts are used to store, search and retrieve information.
+> The terms "key", "query" and "value" in the context of attention mechanisms are borrowed from the domain of information retrieval and databases where similar concepts are used to store, search and retrieve informationkin
 > A query is analogous to a search query in a database. It represents the current item, the model focuses on or tries to understand. The query is used to probe the other parts of the input sequence to determine how much attention to pay to them.
 > The key is like a database key used for indexing and searching. In the attention mechanism, each item in the input sequence has an associated key. These keys are used to match the query.
 > The value in this context is similar to the value in a key-value pair in a database. It represents the actual content or representation of the input items. Once the model determines which keys are most relevant to the query, it retrieves the corresponding values.
@@ -78,3 +78,12 @@ The new weights are calculated and the matrix is renormalised which makes sure t
 > **Dropout** : It is a technique where randomly selected hidden layer units are ignored during training, this helps in getting rid of the over fitting problem. The dropout is applied 2 times: after calculating the attention weights or after applying the attention weights to the value vectors. Here we will apply the dropout mask after computing the attention weights.
 
 While applying the dropout, the half of the items in the zeroes out randomly.
+
+## Extending single-headed attention to multi-head attention
+A single casual attention module can be referred as single-head attention, when multiple such heads are present then it is called as multi-head attention. Each head is responsible to pay attention to certain parameter.
+
+### Stacking multiple single-head attention layers
+Implementing multi-head attention involves creating multiple instances of the self-attention mechanism, each with it's own weights and then combining their outputs. Using multiple instances of self-attention mechanism can be computationally intensive, but it's crucial for the complex pattern recognition.
+
+### Implementing multi-head attention with weight splits
+We can combine the CasualAttention and MultiHeadAttention wrapper to a single class called MultiHeadAttention class

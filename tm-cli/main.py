@@ -1,5 +1,5 @@
 from task_manager.models.task import Task, Priority
-from cli.parser import create_parser
+from task_manager.cli.parser import create_parser
 
 
 def add_task(args):

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "example_package"
+version = "0.0.1"
+authors = [
+{name="Ankit Sharma", email = "ankugargdev619@gmail.com" },
+]
+description = "A small example package"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN(CS)E*"]
+
+[project.urls]
+Hompage = "https://github.com/ankugargdev619/study-notes"
+Issues = "https://github.com/ankugargdev619/study-notes/issues"
